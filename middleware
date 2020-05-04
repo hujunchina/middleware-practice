@@ -1,0 +1,15 @@
+2020-05-04 20:49:29.148  INFO 13240 --- [main] c.h.MainApplication                      : Starting MainApplication on hujun725 with PID 13240 (C:\code\github\middleware-practice\server\target\classes started by Alice in C:\code\github\middleware-practice)
+2020-05-04 20:49:29.159 DEBUG 13240 --- [main] c.h.MainApplication                      : Running with Spring Boot v2.2.6.RELEASE, Spring v5.2.5.RELEASE
+2020-05-04 20:49:29.160  INFO 13240 --- [main] c.h.MainApplication                      : No active profile set, falling back to default profiles: default
+2020-05-04 20:49:30.337  WARN 13240 --- [main] o.m.s.m.ClassPathMapperScanner           : No MyBatis mapper was found in '[com.hujunchina]' package. Please check your configuration.
+2020-05-04 20:49:31.017  INFO 13240 --- [main] o.s.b.w.e.t.TomcatWebServer              : Tomcat initialized with port(s): 8088 (http)
+2020-05-04 20:49:31.035  INFO 13240 --- [main] o.a.c.c.StandardService                  : Starting service [Tomcat]
+2020-05-04 20:49:31.037  INFO 13240 --- [main] o.a.c.c.StandardEngine                   : Starting Servlet engine: [Apache Tomcat/9.0.33]
+2020-05-04 20:49:31.135  INFO 13240 --- [main] o.a.c.c.C.[.[.[/middleware]              : Initializing Spring embedded WebApplicationContext
+2020-05-04 20:49:31.135  INFO 13240 --- [main] o.s.w.c.ContextLoader                    : Root WebApplicationContext: initialization completed in 1926 ms
+2020-05-04 20:49:31.295  INFO 13240 --- [main] o.s.s.c.ThreadPoolTaskExecutor           : Initializing ExecutorService 'applicationTaskExecutor'
+2020-05-04 20:49:31.630  INFO 13240 --- [main] o.s.b.w.e.t.TomcatWebServer              : Tomcat started on port(s): 8088 (http) with context path '/middleware'
+2020-05-04 20:49:31.633  INFO 13240 --- [main] c.h.MainApplication                      : Started MainApplication in 3.049 seconds (JVM running for 4.547)
+2020-05-04 20:51:16.078  INFO 13240 --- [http-nio-8088-exec-2] o.a.c.c.C.[.[.[/middleware]              : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2020-05-04 20:51:16.079  INFO 13240 --- [http-nio-8088-exec-2] o.s.w.s.DispatcherServlet                : Initializing Servlet 'dispatcherServlet'
+2020-05-04 20:51:16.088  INFO 13240 --- [http-nio-8088-exec-2] o.s.w.s.DispatcherServlet                : Completed initialization in 9 ms
