@@ -4,7 +4,7 @@
 
 - 项目介绍
 - 一个简单的Spring Boot 程序
-- 。。。
+- 加入 Redis 中间件
 
 
 
@@ -188,5 +188,64 @@ http://localhost:8088/middleware/goods/info?goodsNo=1&goodsName=boods
     <artifactId>logback-classic</artifactId>
     </exclusion>
 </exclusions>
+```
+
+
+
+### 3. 加入 Redis 中间件
+
+#### 3.1 Redis 基本知识点
+
+Redis 的到来，因为互联网 web1.0 时代 Web 应用大多是单机集成的，无法满足海量用户需求；在 web2.0 时代为了实现高并发，高QPS和解决数据库瓶颈，把数据缓存到内存中，提高读写效率。Redis 就是以内存为介质存储的 k-v 键值对的NoSQL非关系型数据库。
+
+因为 Redis 采用了内存存储，再加上单线程操作和对IO的多路复用，使得Redis 速度非常快。
+
+可以用于热点数据存储，排行榜，时限数据等。
+
+#### 3.2 SpringBoot 集成 Redis
+
+很简单，其实就是在 pom 中价格依赖。
+
+```xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis</artifactId>
+    <version>2.2.6.RELEASE</version>
+</dependency>
+```
+
+然后在文件 `application.properties` 中配置端口和 IP 。
+
+```
+spring.redis.host=127.0.0.1
+spring.redis.port=6379
+```
+
+#### 3.3 Redis 测试
+
+这部分在`\server\src\test\java\com\hujunchina\RedisTest.java` 代码中。
+
+直接使用 `RedisTemplate` 封装好的实体类操作 Redis 。通过该类生成 `ValueOpreations` 类操作get&set。
+
+并通过 JackSon 提供的 ObjectMapper 类对类进行实例化和反实例化。
+
+```java
+@Test
+public void ObjectToCache() throws JsonProcessingException {
+    log.info("-----redis 将对象序列化到缓存-----");
+    final Goods goods = new Goods(12345, "goodsName");
+    final String key = "redis:template:two:object";
+    final String value = objectMapper.writeValueAsString(goods);
+
+    ValueOperations vo = redisTemplate.opsForValue();
+    vo.set(key, value);
+    log.info("写入了对象goods,{}", value);
+
+    Object result = vo.get(key);
+    if(result!=null){
+        Goods resultGoods = objectMapper.readValue(result.toString(), Goods.class);
+        log.info("得到对象goods,{}", goods);
+    }
+}
 ```
 

@@ -2,6 +2,8 @@
 .idea/
 *.iml
 target/
+*.log
+
 # Compiled class file
 *.class
 
