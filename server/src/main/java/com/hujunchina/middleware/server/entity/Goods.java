@@ -1,8 +1,10 @@
-package com.hujunchina.entity;
+package com.hujunchina.middleware.server.entity;
 import lombok.Data;
 
+import java.io.Serializable;
+
 @Data
-public class Goods {
+public class Goods implements Serializable {
 
     private Integer goodsNo;
     private String goodsName;

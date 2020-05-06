@@ -1,6 +1,6 @@
-package com.hujunchina.controller;
+package com.hujunchina.middleware.server.controller;
 
-import com.hujunchina.entity.Goods;
+import com.hujunchina.middleware.server.entity.Goods;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,4 +19,10 @@ public class GoodsController {
         goods.setGoodsName(goodsName);
         return goods;
     }
+
+    @RequestMapping()
+    public String index(){
+        return "hello, server works fine";
+    }
+
 }

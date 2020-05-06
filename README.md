@@ -249,3 +249,77 @@ public void ObjectToCache() throws JsonProcessingException {
 }
 ```
 
+#### 3.4 Redis 穿透测试
+
+Redis 穿透指用户请求的数据在 Redis中没有缓存需要向数据库查询，这样频繁的操作等于 Redis 没有任何作用，每次访问都是查询数据库，数据库压力还是很大。解决的办法就是，第一次查询不到时，把结果以 Null 形式缓存在 Redis 中并设置过期时间。
+
+按照 [数据库操作](./database.md) 建立表，然后插入数据。
+
+新建 `CachePassController` 类用来响应 URL 请求。
+
+```java
+//  控制类
+@RestController
+public class CachePassController {
+    private static final Logger log = LoggerFactory.getLogger(CachePassController.class);
+    private static final String prefix = "cache/pass";
+//    服务类
+    @Autowired
+    private CachePassService cachePassService;
+
+    @RequestMapping(value = prefix+"/item/info", method = RequestMethod.GET)
+    public Map<String, Object> getItem(@RequestParam String itemCode){
+        Map<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 0);
+        resMap.put("msg", "success");
+        try {
+            resMap.put("data", cachePassService.getItemInfo(itemCode));
+        }catch (Exception e){
+            resMap.put("code", -1);
+            resMap.put("msg", "failed:"+e.getMessage());
+        }
+        return resMap;
+    }
+}
+```
+
+新建 `CachePassServer` 用来处理具体业务服务。
+
+```java
+@Service
+public class CachePassService {
+    private static final Logger log = LoggerFactory.getLogger(CachePassService.class);
+    private static final String prefix = "item:";
+    @Autowired
+    public ObjectMapper objectMapper;
+    @Autowired
+    public ItemMapper itemMapper;
+    @Autowired
+    public RedisTemplate redisTemplate;
+
+    public Item getItemInfo(String itemCode) throws JsonProcessingException {
+        Item item = null;
+        final String key = prefix+itemCode;
+        ValueOperations vo = redisTemplate.opsForValue();
+        if(redisTemplate.hasKey(key)){
+            log.info("---获取商品的信息--缓存中商品的信息--商品编号:{}", itemCode);
+            Object result = vo.get(key);
+            if(result!=null & !Strings.isNullOrEmpty(result.toString())){
+                item = objectMapper.readValue(result.toString(), Item.class);
+            }
+        }else{
+            log.info("---缓存中不存在商品信息--从数据库中查找--商品编号:{}", itemCode);
+            item = itemMapper.selectByCode(itemCode);
+            if(item!=null){
+                vo.set(key, objectMapper.writeValueAsString(item));
+            }else{
+                vo.set(key, "", 30L, TimeUnit.SECONDS);
+            }
+        }
+        return item;
+    }
+}
+```
+
+这里当 item 为空时，插入一个新 key 为 “”。
+
