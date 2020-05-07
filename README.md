@@ -18,6 +18,7 @@
 - 项目开始2020年5月4日 19:12:02
 - 搭建 Redis 环境 2020年5月5日 17:34:11
 - 测试 Redis 穿透 2020年5月6日 21:16:28
+- Redis 红包系统的发红包部分 2020年5月7日 15:11:53
 
 
 
@@ -335,4 +336,90 @@ public class CachePassService {
 PS: 如果局域网无法访问 SpringBoot，需要在 application.properties 里面设置 server.address=0.0.0.0，最后别忘了把防火墙关了。
 
 ### 4. Redis 抢红包系统
+
+#### 4.1 业务逻辑或者流程
+
+用户打开页面，输入金额和数量，发红包，其他用户点开页面，抢到红包，没抢到了可以查看红包记录。
+
+INPUT：发红包用户ID，金额 Amount，数量 Total
+
+OUTPUT：红包份数 List 数组，Redis 和数据库记录（包括红包生成单，红包分配单，红包抢购单）
+
+VALID：输入输出合法性，用户抢时先检查 Redis 队列中是否为空。
+
+大量请求：把红包事先公平的生成好，并存在Redis中，用Redis来扛流量，其他数据都异步延迟写入到数据库。
+
+#### 4.2 红包分配算法：二倍均值算法
+
+$$
+money = M \div N *2
+$$
+
+其中M是总钱数，N是总人数，确定一个范围最小限是0.01元，最高为money元。
+
+表示任何红包份额都不会超过总钱数的一半，比如100元，不会出现大于50元的红包。
+
+```java
+public static List<Integer> divideRedPacket(Integer totalAmount, Integer totalPeopleNum){
+    List<Integer> amountList = new ArrayList<>();
+    if(totalAmount>0 && totalPeopleNum>0){
+        Integer restAmount = totalAmount;
+        Integer restPeopleNum = totalPeopleNum;
+        Random random = new Random();
+        for(int i=0; i<totalPeopleNum-1; i++){
+            int amount = random.nextInt(restAmount/restPeopleNum*2-1)+1;
+            restAmount -= amount;
+            restPeopleNum--;
+            amountList.add(amount);
+        }
+        amountList.add(restAmount);
+    }
+    return amountList;
+}
+```
+
+#### 4.3 红包唯一标识符设计
+
+```java
+//           红包唯一标识
+String timeStamp = String.valueOf(System.nanoTime());
+String redID = new StringBuffer(keyPrefix).append(redPacket.getUid()).
+    				append(":").append(timeStamp).toString();
+```
+
+通过生成的时间来标识，时间精确到纳秒，不知道在上千万的QPS下会不会重复，待测试。
+
+#### 4.4 数据表存储
+
+```java
+public void recordRedPacket(RedPacket redPacket, String redID, List<Integer> list) throws Exception {
+    //        发红包记录到数据库，谁发的红包
+    RedRecord redRecord = new RedRecord();
+    redRecord.setUid(redPacket.getUid());
+    redRecord.setUuid(redID);
+    redRecord.setTotal(redPacket.getTotal());
+    redRecord.setMoney(BigDecimal.valueOf(redPacket.getAmount()));
+    redRecord.setCreateTime(new Date());
+    redRecordMapper.insertSelective(redRecord);
+    log.info("---插入红包分配数据成功---{}",redRecord.getId());
+
+    //        红包分割明细记录到数据库，每个人分多少
+    RedDetail redDetail;
+    for(Integer part : list){
+        redDetail = new RedDetail();
+        redDetail.setRecordId(redID);
+        redDetail.setPerMoney(BigDecimal.valueOf(part));
+        redDetail.setCreateTime(new Date());
+        redDetailMapper.insertSelective(redDetail);
+        log.info("---红包明细插入成功---");
+    }
+}
+```
+
+存储到数据库中。
+
+##### 注意：
+
+1. FastJson 在处理POST传入的参数时，如果是个对象，该对象的声明类一定要有空构造方法。因为FastJson需要使用空构造方法反序列化。
+2. 数据库写入时如果不指明ID，会自动按增长分配，但不能立刻得到，需要查询一次才有。
 
