@@ -5,6 +5,7 @@
 - 项目介绍
 - 一个简单的Spring Boot 程序
 - 加入 Redis 中间件
+- Redis 抢红包系统
 
 
 
@@ -15,6 +16,8 @@
 #### 1.1 项目时间点
 
 - 项目开始2020年5月4日 19:12:02
+- 搭建 Redis 环境 2020年5月5日 17:34:11
+- 测试 Redis 穿透 2020年5月6日 21:16:28
 
 
 
@@ -322,4 +325,14 @@ public class CachePassService {
 ```
 
 这里当 item 为空时，插入一个新 key 为 “”。
+
+接下来，使用 Jmeter 测试。首先添加一个 `ThreadGroup`，然后添加一个 `HTTPRequest` 请求测试。
+
+这样可以设置多线程同时发送请求。在本机测试最高并发量是1200/s，在局域网下测试最高并发量是80/s。
+
+性能还是很低的，如果考虑到路由器等硬件因素会更低。
+
+PS: 如果局域网无法访问 SpringBoot，需要在 application.properties 里面设置 server.address=0.0.0.0，最后别忘了把防火墙关了。
+
+### 4. Redis 抢红包系统
 
