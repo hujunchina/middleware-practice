@@ -2,6 +2,7 @@ package com.hujunchina;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hujunchina.middleware.server.MainApplication;
 import com.hujunchina.middleware.server.entity.Goods;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,8 +17,7 @@ import java.util.*;
 
 // 单元测试类，用于测试redis是否正常运行
 @RunWith(SpringJUnit4ClassRunner.class)
-@SpringBootTest
-
+@SpringBootTest(classes = MainApplication.class)
 public class RedisTest {
     private static final Logger log = LoggerFactory.getLogger(RedisTest.class);
 

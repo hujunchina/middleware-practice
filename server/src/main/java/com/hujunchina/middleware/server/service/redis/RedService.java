@@ -1,6 +1,7 @@
 package com.hujunchina.middleware.server.service.redis;
 
 import com.hujunchina.middleware.model.entity.RedDetail;
+import com.hujunchina.middleware.model.entity.RedDivide;
 import com.hujunchina.middleware.model.entity.RedRecord;
 import com.hujunchina.middleware.model.mapper.RedDetailMapper;
 import com.hujunchina.middleware.model.mapper.RedDivideMapper;
@@ -60,5 +61,11 @@ public class RedService implements IRedService {
     @Override
     public void recordRobRedPacket(Integer uid, String redID, BigDecimal amount) throws Exception {
 //         抢到红包记录到数据库，谁抢到了
+        RedDivide redDivide = new RedDivide();
+        redDivide.setUid(uid);
+        redDivide.setUuid(redID);
+        redDivide.setMoney(amount);
+        redDivide.setDivideTime(new Date());
+        redDivideMapper.insertSelective(redDivide);
     }
 }

@@ -423,3 +423,122 @@ public void recordRedPacket(RedPacket redPacket, String redID, List<Integer> lis
 1. FastJson 在处理POST传入的参数时，如果是个对象，该对象的声明类一定要有空构造方法。因为FastJson需要使用空构造方法反序列化。
 2. 数据库写入时如果不指明ID，会自动按增长分配，但不能立刻得到，需要查询一次才有。
 
+### 5. 抢红包第二部分
+
+即用户抢红包业务，上一节实现了红包的创建和提前分配，这节实现如何抢红包。
+
+用户入口即点开红包，需要参数确定用户和红包，进行红包分配，然后返回结果。
+
+INPUT：uesID，redID
+
+OUTPUT：BaseResponse （封装好的 Json 来实现 RESTfulAPI）
+
+中间过程有：1. 检测合法性（红包个数和是否抢过）2. 更新redis中红包总数和红包份额 3. 把信息写入数据库
+
+#### 5.1 路由部分
+
+```java
+@RequestMapping(value = prefix+"/rob", method = RequestMethod.GET)
+public BaseResponse rob(@RequestParam Integer uid, @RequestParam String redID){
+    BaseResponse response = new BaseResponse(StatusCode.Success);
+    try{
+        BigDecimal result = redPacketService.rob(uid, redID);
+        if( result!=null ){
+            response.setData(result);
+        }else{
+            response = new BaseResponse(StatusCode.Fail.getCode(), "红包被抢完了");
+        }
+    }catch (Exception e){
+        log.error("抢红包异常: userID = {}, redID = {}", uid,redID, e.fillInStackTrace());
+        response = new BaseResponse(StatusCode.Fail.getCode(), e.getMessage());
+    }
+    return response;
+}
+```
+
+构造input输入格式，调用服务类的rob，让其处理中间过程，最后判断并返回结果。
+
+#### 5.2 Redis 部分
+
+```java
+private Boolean click(String redID){
+    ValueOperations vo = redisTemplate.opsForValue();
+    String redTotalKey = redID+":total";
+    Object obj = vo.get(redTotalKey);
+    if(obj!=null && Integer.valueOf(obj.toString())>0){
+        return true;
+    }
+    return false;
+}
+```
+
+首先定义一个判断红包总数的函数，处理红包被抢完了情况。
+
+```java
+@Override
+public BigDecimal rob(Integer uid, String redID) throws Exception {
+    ValueOperations vo = redisTemplate.opsForValue();
+    Object obj = vo.get(redID+uid+":rob");
+    if(obj!=null){
+        return new BigDecimal(obj.toString());
+    }
+    Boolean res = click(redID);
+    if(res){
+        //            上分布式锁
+        final String lockKey = redID+uid+"-lock";
+        Boolean lock = vo.setIfAbsent(lockKey, redID);
+        redisTemplate.expire(lockKey, 24L, TimeUnit.HOURS);
+        try {
+            if(lock) {
+                Object robMoney = redisTemplate.opsForList().rightPop(redID);
+                if (robMoney != null) {
+                    String redTotalKey = redID + ":total";
+                    Integer currTotal = vo.get(redTotalKey) != null ? Integer.valueOf(vo.get(redTotalKey).toString()) : 0;
+                    vo.set(redTotalKey, currTotal - 1);
+                    BigDecimal result = new BigDecimal(robMoney.toString()).divide(new BigDecimal(100));
+                    redService.recordRobRedPacket(uid, redID, new BigDecimal(robMoney.toString()));
+                    vo.set(redID + uid + ":rob", result, 24L, TimeUnit.HOURS);
+                    log.info("用户uid={}, redID={}, 抢到了={}元", uid, redID, result);
+                    return result;
+                }
+            }
+        }catch (Exception e){
+            throw  new Exception("系统异常-抢红包-加分布式锁失败");
+        }
+    }
+    return null;
+}
+```
+
+这里第一步，从redis中获取redID+uid键值判断是否领取过。而后更新total并插入自己领取的键hasRobbed。
+
+一切顺利的话，开始写入数据库。
+
+有一个问题是，高并发下用户存在超抢问题。一个用户可能抢到两次红包，因为一个线程执行抢方法时，还没来得及写入hasRobbed到redis，另一个线程开始判断hasRobbed，导致hasRobbed设置失败，另一个线程抢红包。
+
+这时需要加一个分布式锁，即一个redis的key，hasEntry，比hasRobbed更超前设置到redis中即可。不能提前设置hasRobbed，因为后面执行不一定抢到红包。
+
+```java
+@Override
+public void recordRobRedPacket(Integer uid, String redID, BigDecimal amount) throws Exception {
+//         抢到红包记录到数据库，谁抢到了
+RedDivide redDivide = new RedDivide();
+redDivide.setUid(uid);
+redDivide.setUuid(redID);
+redDivide.setMoney(amount);
+redDivide.setDivideTime(new Date());
+redDivideMapper.insertSelective(redDivide);
+}
+```
+
+将抢到的结果写入数据库，持久化。
+
+#### 5.3 Jmeter 压测
+
+秒级高并发，每秒请求达到成千上万。我们使用apache的开源项目 Jmeter 进行压测。
+
+![image-20200508171549416](C:\code\github\middleware-practice\img\image-20200508171549416.png)
+
+结构如上图，设置一个线程组，里面包含一个Http请求和CSV数据配置和结果查看树。
+
+本机上测试，秒级请求10000个，服务器可以正常处理请求。

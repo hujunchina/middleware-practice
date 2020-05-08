@@ -1,11 +1,18 @@
 package com.hujunchina;
 
+import com.hujunchina.middleware.server.MainApplication;
 import com.hujunchina.middleware.server.utils.RedPacketUtils;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.Arrays;
 import java.util.List;
 
+// 单元测试类，用于测试redis是否正常运行
+@RunWith(SpringJUnit4ClassRunner.class)
+@SpringBootTest(classes = MainApplication.class)
 public class RedPacketTest {
     @Test
     public void dividePacketTest(){

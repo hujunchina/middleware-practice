@@ -13,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.math.BigDecimal;
 
 @RestController
 public class RedPacketController {
@@ -37,6 +38,24 @@ public class RedPacketController {
         }catch (Exception e){
             log.error("发红包异常：{}", e.toString());
             response = new BaseResponse(StatusCode.Fail);
+        }
+        return response;
+    }
+
+//    抢红包 调度
+    @RequestMapping(value = prefix+"/rob", method = RequestMethod.GET)
+    public BaseResponse rob(@RequestParam Integer uid, @RequestParam String redID){
+        BaseResponse response = new BaseResponse(StatusCode.Success);
+        try{
+            BigDecimal result = redPacketService.rob(uid, redID);
+            if( result!=null ){
+                response.setData(result);
+            }else{
+                response = new BaseResponse(StatusCode.Fail.getCode(), "红包被抢完了");
+            }
+        }catch (Exception e){
+            log.error("抢红包异常: userID = {}, redID = {}", uid,redID, e.fillInStackTrace());
+            response = new BaseResponse(StatusCode.Fail.getCode(), e.getMessage());
         }
         return response;
     }
