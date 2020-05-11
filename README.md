@@ -6,6 +6,8 @@
 - 一个简单的Spring Boot 程序
 - 加入 Redis 中间件
 - Redis 抢红包系统
+- Spring 事件驱动模型
+- Rabbitmq 
 
 
 
@@ -542,3 +544,55 @@ redDivideMapper.insertSelective(redDivide);
 结构如上图，设置一个线程组，里面包含一个Http请求和CSV数据配置和结果查看树。
 
 本机上测试，秒级请求10000个，服务器可以正常处理请求。
+
+### 6. Spring 事件驱动模型
+
+事件=消息（数据等），驱动=到来（动力），事件驱动=以数据或消息的到来有无为信号来通知其他进程做事情。
+
+相比于传统的直接调用，事件驱动更加有意识，只有满足条件时就调用。
+
+#### 6.1 用户登录事件
+
+把用户登录类作为一个消息事件 LoginEvent，继承 Spring 自带的 ApplicationEvent，这样才能是事件驱动的类型，不然不被接受无法把一个普通类加到发布者中。
+
+```java
+public class LoginEvent extends ApplicationEvetn implements Serializable{}
+```
+
+然后，仿照线程的生产者-消费者模型，事件驱动也有事件的生产（发布者）ApplicationEventPublisher 接口，中的 publishEvent 方法发送消息。
+
+```java
+@Autowired
+private ApplicationEventPublisher publisher;
+public.publishEvent(loginEvent);
+```
+
+这里使用了异步通信方式发送消息。
+
+最后，消费者（监听者）ApplicationListener 接口，重写消费时间方法 onApplicationEvent 即可完成自己如何消费处理消息事件了。
+
+```java
+public class EventConsumer implements ApplicationListener<LoginEvent>{
+    @Override
+    @Async
+    public void onApplicationEvent(LoginEvent loginEvent) {
+        log.info("Spring-事件驱动模型-收到消息:{}", loginEvent);
+        // 收到消息时的异步处理，如写入数据库等
+    }
+}
+```
+
+#### 6.2 底层原理
+
+Spring 的事件驱动模型很有意识，如果设置了异步通信方式，底层会使用 线程池来保存一个一个消息，并使用 linkedblockingqueue 作为阻塞队列。
+
+当有消息 publisher 时，就是把消息放入到线程池中 excutoer.execute()。
+
+当消费消息 listener 时，线程池会根据用户重写的方法来执行具体的语句。
+
+那么，是怎么知道有哪些消费者呢？如果有多个消费者怎么办？
+
+测试了，多个监听者都可以收到消息。只要有消息 publish 出来就能接受到消息。
+
+Spring Context 加载初始化完成（refresh）后会再次检测应用中的 `ApplicationListener`，并且注册，此时会将我们实现的 `ApplicationListener` 就会加入到 `SimpleApplicationEventMulticaster` 维护的 Listener 集合中，这个集合是 ConcurrentHashMap。
+

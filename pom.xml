@@ -7,7 +7,7 @@
     <groupId>com.hujunchina.middleware</groupId>
     <artifactId>middleware-practice</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1</version>
+    <version>1.2.1</version>
     <modules>
         <module>api</module>
         <module>model</module>

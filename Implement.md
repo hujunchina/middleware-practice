@@ -66,6 +66,11 @@
 
 - 一定要设置国内镜像，第一次 mvn install 需要下载很多东西。
 - 测试不通过，需要指明启动类 `@SpingBootTest(classes=MainApplication.class)`
-- 
+- 测试完成后，需要修改数据库用户名和密码，数据库名等
 
-### 
+#### 3.4 测试
+
+​	使用 Jmeter 压测，QPS 大致在120 左右，不是很良好。
+
+
+
