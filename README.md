@@ -7,7 +7,7 @@
 - 加入 Redis 中间件
 - Redis 抢红包系统
 - Spring 事件驱动模型
-- Rabbitmq 
+- Rabbitmq 项目
 
 
 
@@ -596,3 +596,8 @@ Spring 的事件驱动模型很有意识，如果设置了异步通信方式，�
 
 Spring Context 加载初始化完成（refresh）后会再次检测应用中的 `ApplicationListener`，并且注册，此时会将我们实现的 `ApplicationListener` 就会加入到 `SimpleApplicationEventMulticaster` 维护的 Listener 集合中，这个集合是 ConcurrentHashMap。
 
+### 7. RabbitMQ 项目
+
+#### 7.1 RabbitMQ 简单收发消息
+
+见 [implement.md](./implement.md)
