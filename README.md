@@ -1,38 +1,33 @@
-### 分布式中间件实战
+# 分布式中间件实战
 
-### 项目目录
+## 项目目录
 
-- 项目介绍
-- 一个简单的Spring Boot 程序
-- 加入 Redis 中间件
-- Redis 抢红包系统
-- Spring 事件驱动模型
-- Rabbitmq 项目
+[TOC]
 
-
-
-### 1. 项目介绍
+# 1. 项目介绍
 
 学习《分布式中间件技术实战》动手项目，这本书讲了常见的中间件 Redis、RabbitMQ、ZooKeeper、Nginx等。非常适合我这种没有接触过大型项目的学生。老老实实学完本书。
 
-#### 1.1 项目时间点
+## 1.1 项目时间点
 
 - 项目开始2020年5月4日 19:12:02
 - 搭建 Redis 环境 2020年5月5日 17:34:11
 - 测试 Redis 穿透 2020年5月6日 21:16:28
 - Redis 红包系统的发红包部分 2020年5月7日 15:11:53
+- RabbitMQ Basic 测试 2020年5月11日 23:45:31
+- 对 抢红包项目重新定位和设计 2020年5月26日 17:28:48
 
 
 
-### 2. 一个简单的SpringBoot程序
+# 2. 一个简单的SpringBoot程序
 
-#### 2.1 框架
+## 2.1 框架
 
 - api module（提供其他中间件调用）
 - model module（数据操作）
 - server module（核心业务处理，路由处理）
 
-其中api module中的pom.xml 导入依赖
+### 其中api module中的pom.xml 导入依赖
 
 ```java
 <dependencies>
@@ -55,7 +50,7 @@
 </dependencies>
 ```
 
-model module 导入依赖
+### model module 导入依赖
 
 ```
 <dependencies>
@@ -76,7 +71,7 @@ model module 导入依赖
 </dependencies>
 ```
 
-server module 导入依赖
+### server module 导入依赖
 
 ```
 <dependencies>
@@ -143,7 +138,7 @@ server module 导入依赖
 </dependencies>
 ```
 
-#### 2.2 测试
+## 2.2 测试
 
 这里构建了一个 `goods` 路由响应控制器 `GoodsController` 
 
@@ -198,9 +193,9 @@ http://localhost:8088/middleware/goods/info?goodsNo=1&goodsName=boods
 
 
 
-### 3. 加入 Redis 中间件
+# 3. 加入 Redis 中间件
 
-#### 3.1 Redis 基本知识点
+## 3.1 Redis 基本知识点
 
 Redis 的到来，因为互联网 web1.0 时代 Web 应用大多是单机集成的，无法满足海量用户需求；在 web2.0 时代为了实现高并发，高QPS和解决数据库瓶颈，把数据缓存到内存中，提高读写效率。Redis 就是以内存为介质存储的 k-v 键值对的NoSQL非关系型数据库。
 
@@ -208,7 +203,7 @@ Redis 的到来，因为互联网 web1.0 时代 Web 应用大多是单机集成�
 
 可以用于热点数据存储，排行榜，时限数据等。
 
-#### 3.2 SpringBoot 集成 Redis
+## 3.2 SpringBoot 集成 Redis
 
 很简单，其实就是在 pom 中价格依赖。
 
@@ -227,7 +222,7 @@ spring.redis.host=127.0.0.1
 spring.redis.port=6379
 ```
 
-#### 3.3 Redis 测试
+## 3.3 Redis 测试
 
 这部分在`\server\src\test\java\com\hujunchina\RedisTest.java` 代码中。
 
@@ -255,7 +250,7 @@ public void ObjectToCache() throws JsonProcessingException {
 }
 ```
 
-#### 3.4 Redis 穿透测试
+## 3.4 Redis 穿透测试
 
 Redis 穿透指用户请求的数据在 Redis中没有缓存需要向数据库查询，这样频繁的操作等于 Redis 没有任何作用，每次访问都是查询数据库，数据库压力还是很大。解决的办法就是，第一次查询不到时，把结果以 Null 形式缓存在 Redis 中并设置过期时间。
 
@@ -337,9 +332,9 @@ public class CachePassService {
 
 PS: 如果局域网无法访问 SpringBoot，需要在 application.properties 里面设置 server.address=0.0.0.0，最后别忘了把防火墙关了。
 
-### 4. Redis 抢红包系统
+# 4. Redis 抢红包系统
 
-#### 4.1 业务逻辑或者流程
+## 4.1 业务逻辑或者流程
 
 用户打开页面，输入金额和数量，发红包，其他用户点开页面，抢到红包，没抢到了可以查看红包记录。
 
@@ -351,7 +346,7 @@ VALID：输入输出合法性，用户抢时先检查 Redis 队列中是否为�
 
 大量请求：把红包事先公平的生成好，并存在Redis中，用Redis来扛流量，其他数据都异步延迟写入到数据库。
 
-#### 4.2 红包分配算法：二倍均值算法
+## 4.2 红包分配算法：二倍均值算法
 
 $$
 money = M \div N *2
@@ -380,7 +375,7 @@ public static List<Integer> divideRedPacket(Integer totalAmount, Integer totalPe
 }
 ```
 
-#### 4.3 红包唯一标识符设计
+## 4.3 红包唯一标识符设计
 
 ```java
 //           红包唯一标识
@@ -391,7 +386,7 @@ String redID = new StringBuffer(keyPrefix).append(redPacket.getUid()).
 
 通过生成的时间来标识，时间精确到纳秒，不知道在上千万的QPS下会不会重复，待测试。
 
-#### 4.4 数据表存储
+## 4.4 数据表存储
 
 ```java
 public void recordRedPacket(RedPacket redPacket, String redID, List<Integer> list) throws Exception {
@@ -425,7 +420,7 @@ public void recordRedPacket(RedPacket redPacket, String redID, List<Integer> lis
 1. FastJson 在处理POST传入的参数时，如果是个对象，该对象的声明类一定要有空构造方法。因为FastJson需要使用空构造方法反序列化。
 2. 数据库写入时如果不指明ID，会自动按增长分配，但不能立刻得到，需要查询一次才有。
 
-### 5. 抢红包第二部分
+# 5. 抢红包第二部分
 
 即用户抢红包业务，上一节实现了红包的创建和提前分配，这节实现如何抢红包。
 
@@ -437,7 +432,7 @@ OUTPUT：BaseResponse （封装好的 Json 来实现 RESTfulAPI）
 
 中间过程有：1. 检测合法性（红包个数和是否抢过）2. 更新redis中红包总数和红包份额 3. 把信息写入数据库
 
-#### 5.1 路由部分
+## 5.1 路由部分
 
 ```java
 @RequestMapping(value = prefix+"/rob", method = RequestMethod.GET)
@@ -460,7 +455,7 @@ public BaseResponse rob(@RequestParam Integer uid, @RequestParam String redID){
 
 构造input输入格式，调用服务类的rob，让其处理中间过程，最后判断并返回结果。
 
-#### 5.2 Redis 部分
+## 5.2 Redis 部分
 
 ```java
 private Boolean click(String redID){
@@ -535,7 +530,7 @@ redDivideMapper.insertSelective(redDivide);
 
 将抢到的结果写入数据库，持久化。
 
-#### 5.3 Jmeter 压测
+## 5.3 Jmeter 压测
 
 秒级高并发，每秒请求达到成千上万。我们使用apache的开源项目 Jmeter 进行压测。
 
@@ -545,13 +540,13 @@ redDivideMapper.insertSelective(redDivide);
 
 本机上测试，秒级请求10000个，服务器可以正常处理请求。
 
-### 6. Spring 事件驱动模型
+# 6. Spring 事件驱动模型
 
 事件=消息（数据等），驱动=到来（动力），事件驱动=以数据或消息的到来有无为信号来通知其他进程做事情。
 
 相比于传统的直接调用，事件驱动更加有意识，只有满足条件时就调用。
 
-#### 6.1 用户登录事件
+## 6.1 用户登录事件
 
 把用户登录类作为一个消息事件 LoginEvent，继承 Spring 自带的 ApplicationEvent，这样才能是事件驱动的类型，不然不被接受无法把一个普通类加到发布者中。
 
@@ -582,7 +577,7 @@ public class EventConsumer implements ApplicationListener<LoginEvent>{
 }
 ```
 
-#### 6.2 底层原理
+## 6.2 底层原理
 
 Spring 的事件驱动模型很有意识，如果设置了异步通信方式，底层会使用 线程池来保存一个一个消息，并使用 linkedblockingqueue 作为阻塞队列。
 
@@ -596,8 +591,49 @@ Spring 的事件驱动模型很有意识，如果设置了异步通信方式，�
 
 Spring Context 加载初始化完成（refresh）后会再次检测应用中的 `ApplicationListener`，并且注册，此时会将我们实现的 `ApplicationListener` 就会加入到 `SimpleApplicationEventMulticaster` 维护的 Listener 集合中，这个集合是 ConcurrentHashMap。
 
-### 7. RabbitMQ 项目
+# 7. RabbitMQ 项目
 
-#### 7.1 RabbitMQ 简单收发消息
+## 7.1 RabbitMQ 简单收发消息
 
-见 [implement.md](./implement.md)
+见 [implement.md](./Implement.md)
+
+# 8. 秒级高并发抢红包
+
+设计一个能够响应秒级高并发的抢红包，健壮性极强的项目。
+
+## 8.1 对抢红包项目解析
+
+已完成的是一个简单的抢红包项目，主要包含发红包模块和抢红包模块，使用了Spring Boot 和 Redis，主要难点就是使用基于 Redis 锁解决超抢问题。
+
+面试被问到，如果抢到后未能成功通知用户怎么办？在高并发下主机CPU可能会出现一个或两个无法轮转的线程，如果线程包含有需要发送消息给用户或更新 Redis 的字段等，未能执行怎么办？
+
+所以这个项目有很多问题，1. 单机版无法真正解决像过年微信抢红包那样的高并发，2. 易出错，完全没有考虑所有分支可能出现的异常，只是理想化的运行测试而已。
+
+所以需要大改进。
+
+## 8.2 改进指标
+
+分为3大阶段的指标，大家一起抢红包、疯狂抢红包、全民狂抢
+
+- 大家一起抢红包：十万次请求，一万次红包生成。
+- 疯狂抢红包：百万次请求，一万次红包生成
+- 全面狂抢红包：千万次请求，十万次红包生成
+
+至少要保证在请求处理下：数据无异常、系统无延时、8小时无异常。
+
+这样才能仅仅刚刚满足 `秒级高并发请求` ，其实有个问题没有暴露出来，高并发请求的本质是多线程处理，那么同一时刻抢占共享资源，会出现各种问题。比如 Redis 中存储红包份额的 List 变量，这个是单线程的，但是在Java中的处理是多线程的，如何保证其安全性和高效性？
+
+## 8.3 需求和性能指标
+
+- 高性能：请求吞吐量高、响应时间要短
+- 可用性：至少8个小时可用
+- 可伸缩性：多增加一台机器，性能要提高同倍的量
+- 可扩展性：可以以定制红包金额如递增，或指定红包，或支持各种玩法
+- 安全性：金额一定不能搞错，要对账，出现问题立刻熔断
+- 可监控性：最好能设计出后台性能监控界面
+- 可测试性：至少要保证单元测试、保证自己写的没问题，找个测试工程师再测试
+- 可维护性：易于维护、文档和注释详细、笔记思路详细
+- 可重用性：可快速移植到不同机器，可二次解耦
+- 鲁棒性：容错能力强，对输入检测，对大额检测，出现金额错误能恢复
+- 易用性：可操作性强
+- 

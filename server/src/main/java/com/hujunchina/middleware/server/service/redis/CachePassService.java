@@ -31,7 +31,7 @@ public class CachePassService {
         if(redisTemplate.hasKey(key)){
             log.info("---获取商品的信息--缓存中商品的信息--商品编号:{}", itemCode);
             Object result = vo.get(key);
-            if(result!=null & !Strings.isNullOrEmpty(result.toString())){
+            if(result!=null & ! Strings.isNullOrEmpty(result.toString())){
                 item = objectMapper.readValue(result.toString(), Item.class);
             }
         }else{
